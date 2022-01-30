@@ -10,6 +10,7 @@ private:
 	std::shared_ptr<int> hitboxOn;
 	std::shared_ptr<int> hitboxType;
 	std::shared_ptr<LinearColor> hitboxColor;
+	std::shared_ptr<LinearColor> airWheelColor;
 	std::vector<Hitbox> hitboxes;
 
 public:
@@ -17,7 +18,6 @@ public:
 	~HitboxPlugin();
 	virtual void onLoad();
 	virtual void onUnload();
-	
 	void OnFreeplayLoad(std::string eventName);
 	void OnFreeplayDestroy(std::string eventName);
 	void OnHitboxOnValueChanged(std::string oldValue, CVarWrapper cvar);

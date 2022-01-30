@@ -20,7 +20,7 @@
 #include <iostream>
 #include <fstream> 
 
-BAKKESMOD_PLUGIN(HitboxPlugin, "Hitbox plugin", "2.2", PLUGINTYPE_FREEPLAY | PLUGINTYPE_CUSTOM_TRAINING)
+BAKKESMOD_PLUGIN(HitboxPlugin, "Hitbox plugin", "2.2", PLUGINTYPE_FREEPLAY | PLUGINTYPE_CUSTOM_TRAINING | PLUGINTYPE_REPLAY)
 
 HitboxPlugin::HitboxPlugin() { }
 
@@ -38,6 +38,9 @@ void HitboxPlugin::onLoad()
 
 	hitboxColor = std::make_shared<LinearColor>(LinearColor{ 0.f, 0.f, 0.f, 0.f });
 	cvarManager->registerCvar("cl_soccar_hitboxcolor", "#FFFF00", "Color of the hitbox visualization.", true).bindTo(hitboxColor);
+
+	airWheelColor = std::make_shared<LinearColor>(LinearColor{ 0.f, 0.f, 0.f, 0.f });
+	cvarManager->registerCvar("cl_soccar_airwheelcolor", "#3D85C6", "Color of the non-colliding wheel colliders.", true).bindTo(airWheelColor);
 
 	gameWrapper->HookEvent("Function TAGame.Mutator_Freeplay_TA.Init", bind(&HitboxPlugin::OnFreeplayLoad, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.Destroyed", bind(&HitboxPlugin::OnFreeplayDestroy, this, std::placeholders::_1));
@@ -63,6 +66,7 @@ void HitboxPlugin::OnFreeplayLoad(std::string eventName)
 
 	if (*hitboxOn)
 	{
+		cvarManager->log("Drawing hitboxes");
 		gameWrapper->RegisterDrawable(std::bind(&HitboxPlugin::Render, this, std::placeholders::_1));
 	}	
 }
@@ -74,7 +78,7 @@ void HitboxPlugin::OnFreeplayDestroy(std::string eventName)
 
 void HitboxPlugin::OnHitboxOnValueChanged(std::string oldValue, CVarWrapper cvar)
 {
-	int inGame = (gameWrapper->IsInReplay()) ? 2 : ((gameWrapper->IsInOnlineGame()) ? 0 : ((gameWrapper->IsInGame()) ? 1 : 0));
+	int inGame = (gameWrapper->IsInReplay()) ? 1 : ((gameWrapper->IsInOnlineGame()) ? 0 : ((gameWrapper->IsInGame()) ? 1 : 0));
 	//cvarManager->log("OnHitboxValueChanged: " + std::to_string(ingame));
 
 	if (cvar.getIntValue() & inGame)
@@ -94,14 +98,25 @@ void HitboxPlugin::OnHitboxTypeChanged(std::string oldValue, CVarWrapper cvar)
 
 void HitboxPlugin::Render(CanvasWrapper canvas)
 {
-	int inGame = (gameWrapper->IsInGame()) ? 1 : (gameWrapper->IsInReplay()) ? 2 : 0;
+	//int inGame = (gameWrapper->IsInGame()) ? 1 : (gameWrapper->IsInReplay()) ? 2 : 0;
 
-	if (*hitboxOn & inGame)
+	//cvarManager->log("Is In Game: " + (gameWrapper->IsInGame()) ? "true" : "false");
+
+	if (*hitboxOn)
 	{
-		if (gameWrapper->IsInOnlineGame() && inGame != 2) { return; }
+		//if (gameWrapper->IsInOnlineGame() && inGame != 2) { return; }
 
 		ServerWrapper game = gameWrapper->GetCurrentGameState();
+
+		if (gameWrapper->IsInReplay()) {
+			ServerWrapper* serverPtr;
+			serverPtr = &gameWrapper->GetGameEventAsReplay();
+			game = *serverPtr;
+		}
+
+
 		if (game.IsNull()) { return; }
+
 
 		CameraWrapper camera = gameWrapper->GetCamera();
 		if (camera.IsNull()) return;
@@ -188,6 +203,11 @@ void HitboxPlugin::Render(CanvasWrapper canvas)
 
 			for (WheelWrapper& wheel : wheels)
 			{
+				auto contact = wheel.GetContact();
+				if (contact.bHasContact == 0) {
+					canvas.SetColor(*airWheelColor);
+				};
+
 				Vector wheelLoc = wheel.GetLocalRestPosition() - Vector(0.f, 0.f, wheel.GetSuspensionDistance());
 				wheelLoc = RotateVectorWithQuat(wheelLoc, car_rot);
 				wheelLoc += loc;
@@ -195,9 +215,12 @@ void HitboxPlugin::Render(CanvasWrapper canvas)
 				Quat turn_rot = RT::AngleAxisRotation(wheel.GetSteer2(), Vector(0.f, 0.f, 1.f));
 				Quat final_rot = car_rot * turn_rot * upright_rot;
 
-				RT::Circle circ{ wheelLoc, final_rot, wheel.GetWheelRadius() };
+				RT::Circle circ{ wheelLoc, final_rot, wheel.GetWheelRadius()};
+				circ.lineThickness = 5;
 				
 				circ.Draw(canvas, frust);
+
+				canvas.SetColor(*hitboxColor);
 			}
 
 			carIndex++;
