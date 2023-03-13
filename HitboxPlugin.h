@@ -11,6 +11,10 @@ private:
 	std::shared_ptr<int> hitboxType;
 	std::shared_ptr<LinearColor> hitboxColor;
 	std::shared_ptr<LinearColor> airWheelColor;
+	std::shared_ptr<LinearColor> zVelocitycolor;
+	std::shared_ptr<LinearColor> xVelocitycolor;
+	std::shared_ptr<LinearColor> yVelocitycolor;
+
 	std::vector<Hitbox> hitboxes;
 
 public:

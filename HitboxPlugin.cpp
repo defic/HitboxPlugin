@@ -42,6 +42,15 @@ void HitboxPlugin::onLoad()
 	airWheelColor = std::make_shared<LinearColor>(LinearColor{ 0.f, 0.f, 0.f, 0.f });
 	cvarManager->registerCvar("cl_soccar_airwheelcolor", "#3D85C6", "Color of the non-colliding wheel colliders.", true).bindTo(airWheelColor);
 
+	zVelocitycolor = std::make_shared<LinearColor>(LinearColor{ 0.f, 0.f, 0.f, 0.f });
+	cvarManager->registerCvar("hitbox_zvelocitycolor", "#7c6ce5", "Color of Z-velocity meter.", true).bindTo(zVelocitycolor);
+
+	xVelocitycolor = std::make_shared<LinearColor>(LinearColor{ 0.f, 0.f, 0.f, 0.f });
+	cvarManager->registerCvar("hitbox_xvelocitycolor", "#173482", "Color of X-velocity meter.", true).bindTo(xVelocitycolor);
+
+	yVelocitycolor = std::make_shared<LinearColor>(LinearColor{ 0.f, 0.f, 0.f, 0.f });
+	cvarManager->registerCvar("hitbox_yvelocitycolor", "#da2b2b", "Color of Y-velocity meter.", true).bindTo(yVelocitycolor);
+
 	gameWrapper->HookEvent("Function TAGame.Mutator_Freeplay_TA.Init", bind(&HitboxPlugin::OnFreeplayLoad, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.Destroyed", bind(&HitboxPlugin::OnFreeplayDestroy, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function TAGame.GameEvent_TrainingEditor_TA.StartPlayTest", bind(&HitboxPlugin::OnFreeplayLoad, this, std::placeholders::_1));
@@ -183,6 +192,29 @@ void HitboxPlugin::Render(CanvasWrapper canvas)
 			RT::Line(cubeFaces[1], cubeFaces[5], 1.f).DrawWithinFrustum(canvas, frust); // Front left
 			RT::Line(cubeFaces[2], cubeFaces[6], 1.f).DrawWithinFrustum(canvas, frust); // Back left
 			RT::Line(cubeFaces[3], cubeFaces[7], 1.f).DrawWithinFrustum(canvas, frust); // Back right
+
+			auto velocity = car.GetVelocity();
+			
+
+			float divider = 10;
+
+			auto zVelocity = loc;
+			zVelocity.Z += (velocity.Z / divider);
+
+			auto xVelocity = loc;
+			xVelocity.X += (velocity.X / divider);
+
+			auto yVelocity = loc;
+			yVelocity.Y += (velocity.Y / divider);
+
+			canvas.SetColor(*zVelocitycolor);
+			RT::Line(loc, zVelocity, 3.f).DrawWithinFrustum(canvas, frust); //Z
+			canvas.SetColor(*xVelocitycolor);
+			RT::Line(loc, xVelocity, 3.f).DrawWithinFrustum(canvas, frust); //X
+			canvas.SetColor(*yVelocitycolor);
+			RT::Line(loc, yVelocity, 3.f).DrawWithinFrustum(canvas, frust); //Y
+
+			canvas.SetColor(*hitboxColor);
 
 			float diff = (camera.GetLocation() - loc).magnitude();
 			Quat car_rot = RotatorToQuat(rot);
